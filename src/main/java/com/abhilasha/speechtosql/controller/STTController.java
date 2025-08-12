@@ -28,10 +28,7 @@ public class STTController {
         return Map.of("ok", true, "service", "stt", "version", 1);
     }
 
-    /**
-     * Accepts audio uploaded as multipart under either 'file' or 'audio'.
-     * Adds detailed logging so we can see size/content-type in the server logs.
-     */
+    
     @PostMapping(
             value = "/stt",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
@@ -72,10 +69,7 @@ public class STTController {
         }
     }
 
-    /**
-     * Debug endpoint: lets you post audio and just get back meta (no Deepgram call).
-     * Use from the UI if needed to verify bytes flow through.
-     */
+   
     @PostMapping(
             value = "/stt/echo",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
@@ -94,7 +88,7 @@ public class STTController {
         ));
     }
 
-    /* ---------- helpers ---------- */
+    /*  helpers  */
 
     private static String fileInfo(MultipartFile f) {
         if (f == null) return "(null)";
