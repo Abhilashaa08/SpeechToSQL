@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Speech → SQL (SpeechToSQL)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body{font-family:system-ui,-apple-system,sans-serif;margin:24px;max-width:900px}
+    button{padding:8px 14px;margin-right:8px}
+    input,textarea{width:100%;padding:8px;margin-top:8px}
+    pre{background:#f6f8fa;padding:12px;overflow:auto}
+  </style>
+</head>
+<body>
+<h2>Speech → SQL — SpeechToSQL</h2>
+<p>Record your question (e.g., “top 3 customers by revenue this month”), then Transcribe → Run.</p>
+
+<div>
+  <button id="record">🎙️ Record</button>
+  <button id="stop" disabled>Stop</button>
+  <button id="transcribe" disabled>Transcribe</button>
+  <button id="run" disabled>Run NL Query</button>
+</div>
+
+<label>Transcript</label>
+<textarea id="transcript" placeholder="Your transcribed query will appear here..."></textarea>
+
+<label>Results</label>
+<pre id="result">{}</pre>
+
+<script>
+  let mediaRecorder, chunks=[];
+  const recBtn = document.getElementById('record');
+  const stopBtn = document.getElementById('stop');
+  const txBtn = document.getElementById('transcribe');
+  const runBtn = document.getElementById('run');
+  const transcript = document.getElementById('transcript');
+  const result = document.getElementById('result');
+
+  recBtn.onclick = async () => {
+    chunks = [];
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    mediaRecorder.ondataavailable = (e)=> { if (e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = ()=> { txBtn.disabled = chunks.length===0; };
+    mediaRecorder.start();
+    recBtn.disabled = true; stopBtn.disabled = false; txBtn.disabled = true; runBtn.disabled = true;
+  };
+
+  stopBtn.onclick = () => { mediaRecorder && mediaRecorder.stop(); recBtn.disabled=false; stopBtn.disabled=true; };
+
+  txBtn.onclick = async () => {
+    const blob = new Blob(chunks, { type: 'audio/webm' });
+    const form = new FormData();
+    form.append('file', blob, 'query.webm');
+    const res = await fetch('/stt', { method:'POST', body: form });
+    const json = await res.json();
+    transcript.value = (json.transcript || '').trim();
+    runBtn.disabled = !transcript.value.trim();
+  };
+
+  runBtn.onclick = async () => {
+    const q = transcript.value.trim();
+    const res = await fetch('/nlq', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ q })
+    });
+    const json = await res.json();
+    result.textContent = JSON.stringify(json, null, 2);
+  };
+</script>
+</body>
+</html>
